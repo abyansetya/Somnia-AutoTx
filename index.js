@@ -275,12 +275,18 @@ async function handleSendToken() {
           continue;
         }
 
-        if (i < privateKeys.length - 1) {
+        if (privateKeys.length > 1 && i < privateKeys.length - 1) {
+          const delay = await randomDelay(minDelay, maxDelay);
+          console.log(
+            `Menunggu ${delay / 1000} detik sebelum transaksi berikutnya...`
+          );
+        } else if (privateKeys.length === 1) {
           const delay = await randomDelay(minDelay, maxDelay);
           console.log(
             `Menunggu ${delay / 1000} detik sebelum transaksi berikutnya...`
           );
         }
+          
       }
 
       console.log(`\n--- Putaran transaksi ke-${txRound} selesai ---`);
