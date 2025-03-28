@@ -1,0 +1,12 @@
+{
+  "network": {
+    "somnia": {
+      "name": "Somnia Testnet",
+      "chainId": 50312,
+      "rpc": "https://dream-rpc.somnia.network",
+      "symbol": "STT",
+      "explorer": "https://somnia-testnet.socialscan.io",
+      "faucetApi": "https://testnet.somnia.network/api/faucet"
+    }
+  }
+}
