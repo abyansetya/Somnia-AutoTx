@@ -241,8 +241,10 @@ async function handleSendToken() {
         const provider = new ethers.JsonRpcProvider(config.network.somnia.rpc);
         const wallet = new ethers.Wallet(privateKeys[i], provider);
         const newWallet = ethers.Wallet.createRandom();
-
         console.log(`Generated recipient address: ${newWallet.address}`);
+        console.log(
+          `Melakukan tx untuk wallet ke-${i + 1} : ${wallet.address}\n`
+        );
 
         // Pastikan saldo cukup sebelum mengirim transaksi
         const balance = await provider.getBalance(wallet.address);
@@ -276,10 +278,10 @@ async function handleSendToken() {
         }
 
         if (privateKeys.length > 1 && i < privateKeys.length - 1) {
+          console.log(`minDelay: ${minDelay}, maxDelay: ${maxDelay}`);
+
           const delay = await randomDelay(minDelay, maxDelay);
-          console.log(
-            `Menunggu ${delay / 1000} detik sebelum transaksi berikutnya...`
-          );
+          console.log(`Menunggu ${delay / 1000} detik sebelum transaksi berikutnya...`);
         } else if (privateKeys.length === 1) {
           const delay = await randomDelay(minDelay, maxDelay);
           console.log(
