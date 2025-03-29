@@ -211,11 +211,12 @@ async function handleClaimFaucet() {
 
 async function handleSendToken() {
   try {
+    console.log("\n🔢 Masukkan detail transaksi");
     const amountPerTx = parseFloat(
-      await askQuestion("Jumlah token per transaksi: ")
+      await askQuestion("💰 Jumlah token per transaksi: ")
     );
     const txPerAccount = parseInt(
-      await askQuestion("Berapa kali TX per akun: ")
+      await askQuestion("🔄 Berapa kali TX per akun: ")
     );
     const minDelay = 10; // Minimum delay dalam detik
     const maxDelay = 30; // Maksimum delay dalam detik
@@ -226,33 +227,32 @@ async function handleSendToken() {
       amountPerTx <= 0 ||
       txPerAccount <= 0
     ) {
-      console.error("Input tidak valid! Masukkan angka lebih dari 0.");
+      console.error("❌ Input tidak valid! Masukkan angka lebih dari 0.");
       return;
     }
 
     console.log(
-      `\nMemulai proses transaksi, setiap akun akan melakukan ${txPerAccount} transaksi.\n`
+      `\n🚀 Memulai transaksi, setiap akun akan melakukan ${txPerAccount} transaksi.\n`
     );
 
     for (let txRound = 1; txRound <= txPerAccount; txRound++) {
-      console.log(`\n--- Memulai putaran transaksi ke-${txRound} ---`);
+      console.log(`\n🔄 --- Putaran transaksi ke-${txRound} ---`);
 
       for (let i = 0; i < privateKeys.length; i++) {
         const provider = new ethers.JsonRpcProvider(config.network.somnia.rpc);
         const wallet = new ethers.Wallet(privateKeys[i], provider);
         const newWallet = ethers.Wallet.createRandom();
-        console.log(`Generated recipient address: ${newWallet.address}`);
+        console.log(`🎯 Generated recipient address: ${newWallet.address}`);
         console.log(
-          `Melakukan tx untuk wallet ke-${i + 1} : ${wallet.address}\n`
+          `💳 Melakukan TX untuk wallet ke-${i + 1}: ${wallet.address}\n`
         );
 
-        // Pastikan saldo cukup sebelum mengirim transaksi
         const balance = await provider.getBalance(wallet.address);
         const amountInWei = ethers.parseEther(amountPerTx.toString());
 
         if (balance < amountInWei) {
           console.error(
-            `Saldo tidak cukup di wallet ${wallet.address}, transaksi dilewati.`
+            `⚠️ Saldo tidak cukup di wallet ${wallet.address}, transaksi dilewati.`
           );
           continue;
         }
@@ -263,72 +263,74 @@ async function handleSendToken() {
             value: amountInWei,
           });
 
-          console.log(`Transaction sent: ${tx.hash}`);
+          console.log(`✅ Transaction sent: ${tx.hash}`);
           console.log(
-            `View on explorer: ${config.network.somnia.explorer}/tx/${tx.hash}`
+            `🔗 View on explorer: ${config.network.somnia.explorer}/tx/${tx.hash}`
           );
 
           await tx.wait();
         } catch (error) {
           console.error(
-            `Gagal mengirim token dari ${wallet.address}:`,
+            `❌ Gagal mengirim token dari ${wallet.address}:`,
             error.message
           );
           continue;
         }
 
         if (privateKeys.length > 1 && i < privateKeys.length - 1) {
-          console.log(`minDelay: ${minDelay}, maxDelay: ${maxDelay}`);
+          console.log(`⏳ minDelay: ${minDelay}, maxDelay: ${maxDelay}`);
 
           const delay = await randomDelay(minDelay, maxDelay);
-          console.log(`Menunggu ${delay / 1000} detik sebelum transaksi berikutnya...`);
+          console.log(
+            `⏳ Menunggu ${delay / 1000} detik sebelum transaksi berikutnya...`
+          );
         } else if (privateKeys.length === 1) {
           const delay = await randomDelay(minDelay, maxDelay);
           console.log(
-            `Menunggu ${delay / 1000} detik sebelum transaksi berikutnya...`
+            `⏳ Menunggu ${delay / 1000} detik sebelum transaksi berikutnya...`
           );
         }
-          
       }
 
-      console.log(`\n--- Putaran transaksi ke-${txRound} selesai ---`);
+      console.log(`\n✅ --- Putaran transaksi ke-${txRound} selesai ---`);
     }
 
-    console.log("\nSemua transaksi telah selesai!");
+    console.log("\n🎉 Semua transaksi telah selesai!");
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error("❌ Error:", error.message);
   }
 }
 
 async function mainMenu() {
   while (true) {
-    console.log("\nPilih aksi yang ingin dilakukan:");
-    console.log("1. Claim Faucet");
-    console.log("2. Send Token");
-    console.log("3. Keluar");
+    console.log("\n🌟 ============================ 🌟");
+    console.log("        🚀 Main Menu 🚀");
+    console.log("🌟 ============================ 🌟\n");
 
-    const choice = await askQuestion("Masukkan pilihan (1/2/3): ");
+    console.log("1️⃣  💧 Claim Faucet");
+    console.log("2️⃣  💸 Send Token");
+    console.log("3️⃣  ❌ Keluar");
+
+    const choice = await askQuestion("\n👉 Masukkan pilihan (1/2/3): ");
 
     switch (choice.trim()) {
       case "1":
-        console.log("\nMemulai proses klaim faucet...");
+        console.log("\n💦 Memulai proses klaim faucet...");
         await handleClaimFaucet();
         break;
       case "2":
-        console.log("\nMemulai proses pengiriman token...");
+        console.log("\n📤 Memulai proses pengiriman token...");
         await handleSendToken();
         break;
       case "3":
-        console.log("Keluar dari program.");
+        console.log("\n👋 Keluar dari program. Sampai jumpa!");
         process.exit(0);
       default:
-        console.log("Pilihan tidak valid, silakan coba lagi.");
+        console.log("⚠️ Pilihan tidak valid, silakan coba lagi.");
     }
-
-    // Remove recursive call to prevent menu duplication
-    // await mainMenu();
   }
 }
+
 
 // Start the application
 console.log("Starting Multi-Network Bot...");
