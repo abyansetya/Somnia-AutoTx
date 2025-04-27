@@ -14,6 +14,7 @@ const config = JSON.parse(fs.readFileSync("./config/network.json", "utf8"));
 const PK_FILE = "./config/pk.txt";
 const PROXY_FILE = "./config/proxy.txt";
 const FAUCET_API = config.network.somnia.faucetApi;
+const FAUCET_API2 = config.network.somnia.faucetApi2;
 const provider = new ethers.JsonRpcProvider(config.network.somnia.rpc);
 const { SYMBOlS, logger } = require("./utils/logger");
 
@@ -65,49 +66,6 @@ function createProxyAgent(proxy) {
   return new HttpsProxyAgent(url);
 }
 
-async function makeRequest(url, options = {}, retries = 3) {
-  const proxies = loadProxies();
-  let proxy = getRandomProxy(proxies);
-  let attempt = 0;
-
-  while (attempt < retries) {
-    const agent = proxy ? createProxyAgent(proxy) : null;
-    if (!proxy) {
-      console.log("Tidak ada proxy yang digunakan untuk permintaan ini");
-    }
-
-    try {
-      const response = await axios({
-        url,
-        ...options,
-        timeout: 10000, // Set timeout to 10 seconds
-        ...(agent && { httpsAgent: agent, httpAgent: agent }),
-      });
-      return response;
-    } catch (error) {
-      attempt++;
-      if (error.code === "EAI_AGAIN") {
-        console.error(
-          `Kesalahan EAI_AGAIN pada percobaan ${attempt}/${retries} dengan proxy: ${
-            proxy || "tanpa proxy"
-          }`
-        );
-        if (attempt < retries) {
-          console.log("Mencoba lagi dengan proxy lain...");
-          proxy = getRandomProxy(proxies); // Ganti proxy untuk percobaan berikutnya
-          await new Promise((resolve) => setTimeout(resolve, 2000)); // Tunggu 2 detik sebelum retry
-          continue;
-        }
-      }
-      throw new Error(
-        `Request failed setelah ${retries} percobaan${
-          proxy ? " dengan proxy " + proxy : ""
-        }: ${error.message}`
-      );
-    }
-  }
-}
-
 async function claimFaucet(address, retries = 3) {
   logger.info(`Loading proxies from ${PROXY_FILE}...`);
   const proxies = loadProxies();
@@ -119,7 +77,7 @@ async function claimFaucet(address, retries = 3) {
     const agent = proxy ? createProxyAgent(proxy) : null;
 
     logger.processing(`Attempt ${attempt + 1}`);
-    logger.wallet(`Claiming faucet for address: ${address}`);
+    logger.wallet(`Claiming faucet1 for address: ${address}`);
     logger.network(`Using proxy: ${proxy || "No Proxy"}`);
 
     try {
@@ -170,6 +128,71 @@ async function claimFaucet(address, retries = 3) {
   return { success: false, error: "All attempts failed" };
 }
 
+async function claimFaucet2(address, retries = 3) {
+  logger.info(`Loading proxies from ${PROXY_FILE}...`);
+  const proxies = loadProxies();
+  logger.success(`Found ${proxies.length} proxies`);
+  let attempt = 0;
+
+  while (attempt < retries) {
+    let proxy = getRandomProxy(proxies);
+    const agent = proxy ? createProxyAgent(proxy) : null;
+
+    logger.processing(`Attempt ${attempt + 1}`);
+    logger.wallet(`Claiming faucet2 for address: ${address}`);
+    logger.network(`Using proxy: ${proxy || "No Proxy"}`);
+
+    try {
+      const response = await axios({
+        url: FAUCET_API2,
+        method: "POST",
+        data: {
+          recipientAddress: address,
+          amount: "0.5",
+        },
+        headers: {
+          Accept: "*/*",
+          "Accept-Language": "en-US,en;q=0.9",
+          Connection: "keep-alive",
+          "Content-Type": "application/json",
+          Origin: "https://faucet.somniapaint.fun",
+          Referer: "https://faucet.somniapaint.fun/",
+          "Sec-Fetch-Dest": "empty",
+          "Sec-Fetch-Mode": "cors",
+          "Sec-Fetch-Site": "same-origin",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+          "sec-ch-ua":
+            '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
+          "sec-ch-ua-mobile": "?0",
+          "sec-ch-ua-platform": '"Windows"',
+        },
+        ...(agent && { httpAgent: agent, httpsAgent: agent }),
+      });
+
+      if (response.data.success) {
+        return {
+          success: true,
+          hash: response.data.txHash,
+          amount: response.data.amount,
+        };
+      } else {
+        logger.error("Faucet2 claim failed: " + JSON.stringify(response.data));
+      }
+    } catch (error) {
+      logger.warning(`Attempt ${attempt + 1} failed: ${error.message}`);
+    }
+
+    attempt++;
+    if (attempt < retries) {
+      logger.processing("Retrying with a new proxy...");
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+  }
+
+  return { success: false, error: "All attempts failed" };
+}
+
 async function handleClaimFaucet() {
   try {
     if (!privateKeys.length) {
@@ -193,7 +216,20 @@ async function handleClaimFaucet() {
       const result = await claimFaucet(wallet.address);
 
       if (result.success) {
-        logger.success("Claim successful!");
+        logger.success("Claim faucet 1 successful!");
+      } else {
+        logger.error(`Claim failed for ${wallet.address}: ${result.error}`);
+      }
+
+      if (i < privateKeys.length - 1) {
+        logger.info("Waiting 5 seconds before the next claim...");
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+
+      const result2 = await claimFaucet2(wallet.address);
+
+      if (result2.success) {
+        logger.success("Claim faucet 2 successful!");
       } else {
         logger.error(`Claim failed for ${wallet.address}: ${result.error}`);
       }

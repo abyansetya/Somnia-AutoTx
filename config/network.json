@@ -6,7 +6,8 @@
       "rpc": "https://dream-rpc.somnia.network",
       "symbol": "STT",
       "explorer": "https://somnia-testnet.socialscan.io",
-      "faucetApi": "https://testnet.somnia.network/api/faucet"
+      "faucetApi": "https://testnet.somnia.network/api/faucet",
+      "faucetApi2": "https://faucet.somniapaint.fun/api/send-token"
     }
   }
 }
